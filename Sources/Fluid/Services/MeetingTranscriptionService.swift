@@ -1,7 +1,6 @@
 import AVFoundation
 import Combine
 import CoreMedia
-import FluidVoice
 import Foundation
 
 /// Segment with speaker identification
@@ -267,9 +266,9 @@ final class MeetingTranscriptionService: ObservableObject {
                     )
 
                     // Map text to speaker segments based on timestamps
-                    if let segments = speakerSegments, !segments.isEmpty {
+                    if !speakerSegments.isEmpty {
                         speakerSegments = self.mapTextToSpeakerSegments(
-                            segments: segments,
+                            segments: speakerSegments,
                             fullText: finalText,
                             duration: duration
                         )
@@ -279,7 +278,7 @@ final class MeetingTranscriptionService: ObservableObject {
                         "Speaker diarization failed: \(error.localizedDescription)",
                         source: "MeetingTranscriptionService"
                     )
-                    speakerSegments = nil
+                    speakerSegments = []
                 }
             }
 
@@ -350,8 +349,8 @@ final class MeetingTranscriptionService: ObservableObject {
         """
 
         // Add speaker segments if available
-        if let segments = result.speakerSegments, !segments.isEmpty {
-            for segment in segments {
+        if !result.speakerSegments.isEmpty {
+            for segment in result.speakerSegments {
                 content += "\(segment.speaker): \(segment.text)\n\n"
             }
         } else {
