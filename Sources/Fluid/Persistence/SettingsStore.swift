@@ -133,6 +133,9 @@ final class SettingsStore: ObservableObject {
 
         // Streak Settings
         static let weekendsDontBreakStreak = "WeekendsDontBreakStreak"
+
+        // Speaker Diarization
+        static let enableSpeakerDiarization = "EnableSpeakerDiarization"
     }
 
     // MARK: - Prompt Profiles (Unified)
@@ -933,6 +936,11 @@ final class SettingsStore: ObservableObject {
     var copyTranscriptionToClipboard: Bool {
         get { self.defaults.bool(forKey: Keys.copyTranscriptionToClipboard) }
         set { self.defaults.set(newValue, forKey: Keys.copyTranscriptionToClipboard) }
+    }
+
+    var enableSpeakerDiarization: Bool {
+        get { self.defaults.bool(forKey: Keys.enableSpeakerDiarization) }
+        set { self.defaults.set(newValue, forKey: Keys.enableSpeakerDiarization) }
     }
 
     var preferredInputDeviceUID: String? {
@@ -2027,6 +2035,13 @@ final class SettingsStore: ObservableObject {
         case whisperLargeTurbo = "whisper-large-turbo" // temporarily disabled in UI
         case whisperLarge = "whisper-large"
 
+        // MARK: - GigaAM Models (Russian)
+
+        case gigaamV3Ctc = "gigaam-v3-ctc"
+        case gigaamV3Rnnt = "gigaam-v3-rnnt"
+        case gigaamV2Ctc = "gigaam-v2-ctc"
+        case gigaamV2Rnnt = "gigaam-v2-rnnt"
+
         var id: String { rawValue }
 
         // MARK: - Display Properties
@@ -2044,6 +2059,10 @@ final class SettingsStore: ObservableObject {
             case .whisperMedium: return "Whisper Medium"
             case .whisperLargeTurbo: return "Whisper Large Turbo (Disabled)"
             case .whisperLarge: return "Whisper Large"
+            case .gigaamV3Ctc: return "GigaAM v3 CTC (Russian)"
+            case .gigaamV3Rnnt: return "GigaAM v3 RNNT (Russian)"
+            case .gigaamV2Ctc: return "GigaAM v2 CTC (Russian)"
+            case .gigaamV2Rnnt: return "GigaAM v2 RNNT (Russian)"
             }
         }
 
@@ -2056,6 +2075,8 @@ final class SettingsStore: ObservableObject {
             case .appleSpeechAnalyzer: return "EN, ES, FR, DE, IT, JA, KO, PT, ZH"
             case .whisperTiny, .whisperBase, .whisperSmall, .whisperMedium, .whisperLargeTurbo, .whisperLarge:
                 return "99 Languages"
+            case .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt:
+                return "Russian Only"
             }
         }
 
@@ -2072,19 +2093,21 @@ final class SettingsStore: ObservableObject {
             case .whisperMedium: return "~1.5 GB"
             case .whisperLargeTurbo: return "~1.6 GB"
             case .whisperLarge: return "~2.9 GB"
+            case .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt:
+                return "~500 MB"
             }
         }
 
         var requiresAppleSilicon: Bool {
             switch self {
-            case .parakeetTDT, .parakeetTDTv2, .qwen3Asr: return true
+            case .parakeetTDT, .parakeetTDTv2, .qwen3Asr, .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt: return true
             default: return false
             }
         }
 
         var isWhisperModel: Bool {
             switch self {
-            case .parakeetTDT, .parakeetTDTv2, .qwen3Asr, .appleSpeech, .appleSpeechAnalyzer: return false
+            case .parakeetTDT, .parakeetTDTv2, .qwen3Asr, .appleSpeech, .appleSpeechAnalyzer, .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt: return false
             default: return true
             }
         }
@@ -2183,6 +2206,8 @@ final class SettingsStore: ObservableObject {
             case .whisperMedium: return "Medium Quality"
             case .whisperLargeTurbo: return "Higher Quality but Faster"
             case .whisperLarge: return "Maximum Accuracy"
+            case .gigaamV3Ctc, .gigaamV3Rnnt: return "Best Russian ASR"
+            case .gigaamV2Ctc, .gigaamV2Rnnt: return "Russian ASR v2"
             }
         }
 
@@ -2211,6 +2236,10 @@ final class SettingsStore: ObservableObject {
                 return "Near-maximum accuracy with optimized speed."
             case .whisperLarge:
                 return "Best possible accuracy. Large download and memory usage."
+            case .gigaamV3Ctc, .gigaamV3Rnnt:
+                return "State-of-the-art Russian speech recognition. 30% better than Whisper on Russian audio."
+            case .gigaamV2Ctc, .gigaamV2Rnnt:
+                return "Proven Russian ASR model. Good accuracy for Russian language transcription."
             }
         }
 
@@ -2235,6 +2264,8 @@ final class SettingsStore: ObservableObject {
                 return 8.0
             case .whisperLarge:
                 return 10.0 // Large model needs ~6-8GB working memory + model size
+            case .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt:
+                return 4.0
             }
         }
 
@@ -2268,6 +2299,7 @@ final class SettingsStore: ObservableObject {
             case .whisperMedium: return 2
             case .whisperLargeTurbo: return 3
             case .whisperLarge: return 1
+            case .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt: return 4
             }
         }
 
@@ -2285,6 +2317,8 @@ final class SettingsStore: ObservableObject {
             case .whisperMedium: return 4
             case .whisperLargeTurbo: return 5
             case .whisperLarge: return 5
+            case .gigaamV3Ctc, .gigaamV3Rnnt: return 5
+            case .gigaamV2Ctc, .gigaamV2Rnnt: return 4
             }
         }
 
@@ -2302,6 +2336,7 @@ final class SettingsStore: ObservableObject {
             case .whisperMedium: return 0.40
             case .whisperLargeTurbo: return 0.65
             case .whisperLarge: return 0.20
+            case .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt: return 0.80
             }
         }
 
@@ -2319,6 +2354,8 @@ final class SettingsStore: ObservableObject {
             case .whisperMedium: return 0.80
             case .whisperLargeTurbo: return 0.95
             case .whisperLarge: return 1.00
+            case .gigaamV3Ctc, .gigaamV3Rnnt: return 0.95
+            case .gigaamV2Ctc, .gigaamV2Rnnt: return 0.85
             }
         }
 
@@ -2336,7 +2373,7 @@ final class SettingsStore: ObservableObject {
         /// Optimization level for Apple Silicon (for display)
         var appleSiliconOptimized: Bool {
             switch self {
-            case .parakeetTDT, .parakeetTDTv2, .qwen3Asr, .appleSpeechAnalyzer:
+            case .parakeetTDT, .parakeetTDTv2, .qwen3Asr, .appleSpeechAnalyzer, .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt:
                 return true
             default:
                 return false
@@ -2360,6 +2397,7 @@ final class SettingsStore: ObservableObject {
             case apple = "Apple"
             case openai = "OpenAI"
             case qwen = "Qwen"
+            case sber = "Sber"
         }
 
         /// Which provider this model belongs to
@@ -2373,6 +2411,8 @@ final class SettingsStore: ObservableObject {
                 return .qwen
             case .whisperTiny, .whisperBase, .whisperSmall, .whisperMedium, .whisperLargeTurbo, .whisperLarge:
                 return .openai
+            case .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt:
+                return .sber
             }
         }
 
@@ -2434,6 +2474,8 @@ final class SettingsStore: ObservableObject {
                 return "Apple"
             case .whisperTiny, .whisperBase, .whisperSmall, .whisperMedium, .whisperLargeTurbo, .whisperLarge:
                 return "OpenAI"
+            case .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt:
+                return "Sber"
             }
         }
 
@@ -2456,6 +2498,8 @@ final class SettingsStore: ObservableObject {
                 return "#A2AAAD" // Apple Gray
             case .whisperTiny, .whisperBase, .whisperSmall, .whisperMedium, .whisperLargeTurbo, .whisperLarge:
                 return "#10A37F" // OpenAI Teal
+            case .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt:
+                return "#FF6B00" // Sber Orange
             }
         }
     }

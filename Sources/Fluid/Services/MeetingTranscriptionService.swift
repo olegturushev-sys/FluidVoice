@@ -2,6 +2,20 @@ import AVFoundation
 import Combine
 import CoreMedia
 import Foundation
+import FluidVoice
+
+/// Segment with speaker identification
+struct SpeakerSegment: Identifiable, Sendable, Codable {
+    let id = UUID()
+    let speaker: String  // "SPEAKER_01" or "SPEAKER_02"
+    let text: String
+    let startTime: TimeInterval
+    let endTime: TimeInterval
+
+    enum CodingKeys: String, CodingKey {
+        case speaker, text, startTime, endTime
+    }
+}
 
 /// Result of a transcription operation
 struct TranscriptionResult: Identifiable, Sendable, Codable {
@@ -12,9 +26,10 @@ struct TranscriptionResult: Identifiable, Sendable, Codable {
     let processingTime: TimeInterval
     let fileName: String
     let timestamp: Date = .init()
+    var speakerSegments: [SpeakerSegment]?
 
     enum CodingKeys: String, CodingKey {
-        case text, confidence, duration, processingTime, fileName, timestamp
+        case text, confidence, duration, processingTime, fileName, timestamp, speakerSegments
     }
 }
 
@@ -30,6 +45,9 @@ final class MeetingTranscriptionService: ObservableObject {
 
     // Share the ASR service instance to avoid loading models twice
     private let asrService: ASRService
+    
+    // Speaker diarization service
+    private let speakerDiarizationService = SpeakerDiarizationService()
 
     init(asrService: ASRService) {
         self.asrService = asrService
@@ -95,7 +113,9 @@ final class MeetingTranscriptionService: ObservableObject {
     /// Transcribe an audio or video file
     /// - Parameters:
     ///   - fileURL: URL to the audio/video file
-    func transcribeFile(_ fileURL: URL) async throws -> TranscriptionResult {
+    ///   - enableDiarization: Whether to enable speaker diarization (default from Settings)
+    func transcribeFile(_ fileURL: URL, enableDiarization: Bool? = nil) async throws -> TranscriptionResult {
+        let useDiarization = enableDiarization ?? SettingsStore.shared.enableSpeakerDiarization
         self.isTranscribing = true
         error = nil
         self.progress = 0.0
@@ -233,6 +253,35 @@ final class MeetingTranscriptionService: ObservableObject {
             let avgConfidence = chunkCount > 0 ? totalConfidence / Float(chunkCount) : 0
 
             let transcriptionResult = (text: finalText, confidence: avgConfidence)
+            
+            // Speaker diarization
+            var speakerSegments: [SpeakerSegment]? = nil
+            if useDiarization {
+                self.currentStatus = "Performing speaker diarization..."
+                self.progress = 0.92
+                
+                do {
+                    speakerSegments = try await self.speakerDiarizationService.diarize(
+                        audioURL: fileURL,
+                        transcription: finalText
+                    )
+                    
+                    // Map text to speaker segments based on timestamps
+                    if let segments = speakerSegments, !segments.isEmpty {
+                        speakerSegments = self.mapTextToSpeakerSegments(
+                            segments: segments,
+                            fullText: finalText,
+                            duration: duration
+                        )
+                    }
+                } catch {
+                    DebugLogger.shared.warning(
+                        "Speaker diarization failed: \(error.localizedDescription)",
+                        source: "MeetingTranscriptionService"
+                    )
+                    speakerSegments = nil
+                }
+            }
 
             self.currentStatus = "Complete!"
             self.progress = 1.0
@@ -244,7 +293,8 @@ final class MeetingTranscriptionService: ObservableObject {
                 confidence: transcriptionResult.confidence,
                 duration: duration,
                 processingTime: processingTime,
-                fileName: fileURL.lastPathComponent
+                fileName: fileURL.lastPathComponent,
+                speakerSegments: speakerSegments
             )
 
             AnalyticsService.shared.capture(
@@ -288,7 +338,7 @@ final class MeetingTranscriptionService: ObservableObject {
 
     /// Export transcription result to text file
     nonisolated func exportToText(_ result: TranscriptionResult, to destinationURL: URL) throws {
-        let content = """
+        var content = """
         Transcription: \(result.fileName)
         Date: \(result.timestamp.formatted())
         Duration: \(String(format: "%.1f", result.duration))s
@@ -297,8 +347,16 @@ final class MeetingTranscriptionService: ObservableObject {
 
         ---
 
-        \(result.text)
         """
+
+        // Add speaker segments if available
+        if let segments = result.speakerSegments, !segments.isEmpty {
+            for segment in segments {
+                content += "\(segment.speaker): \(segment.text)\n\n"
+            }
+        } else {
+            content += result.text
+        }
 
         try content.write(to: destinationURL, atomically: true, encoding: .utf8)
     }
@@ -414,5 +472,51 @@ final class MeetingTranscriptionService: ObservableObject {
 
         let frameLength = Int(outputBuffer.frameLength)
         return Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+    }
+    
+    // MARK: - Speaker Diarization Helpers
+    
+    /// Map full transcription text to speaker segments based on timing
+    private func mapTextToSpeakerSegments(
+        segments: [SpeakerSegment],
+        fullText: String,
+        duration: TimeInterval
+    ) -> [SpeakerSegment] {
+        guard !segments.isEmpty else { return [] }
+        
+        // Simple approach: distribute text across segments proportionally
+        let words = fullText.split(separator: " ").map(String.init)
+        let totalWords = words.count
+        
+        guard totalWords > 0, duration > 0 else {
+            return segments.map { SpeakerSegment(speaker: $0.speaker, text: fullText, startTime: $0.startTime, endTime: $0.endTime) }
+        }
+        
+        var result: [SpeakerSegment] = []
+        var currentWordIndex = 0
+        
+        for segment in segments {
+            let segmentDuration = segment.endTime - segment.startTime
+            let segmentRatio = segmentDuration / duration
+            let segmentWordCount = max(1, Int(Double(totalWords) * segmentRatio))
+            
+            let endWordIndex = min(currentWordIndex + segmentWordCount, totalWords)
+            
+            if currentWordIndex < totalWords {
+                let segmentWords = Array(words[currentWordIndex..<endWordIndex])
+                let segmentText = segmentWords.joined(separator: " ")
+                
+                result.append(SpeakerSegment(
+                    speaker: segment.speaker,
+                    text: segmentText,
+                    startTime: segment.startTime,
+                    endTime: segment.endTime
+                ))
+                
+                currentWordIndex = endWordIndex
+            }
+        }
+        
+        return result
     }
 }

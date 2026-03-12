@@ -18,6 +18,7 @@ struct MeetingTranscriptionView: View {
     @State private var showingCopyConfirmation = false
     @State private var isDropTargeted = false
     @State private var dropErrorMessage: String?
+    @State private var enableDiarization = false
 
     enum ExportFormat: String, CaseIterable {
         case text = "Text (.txt)"
@@ -137,6 +138,16 @@ struct MeetingTranscriptionView: View {
                         )
                 )
 
+                // Speaker Diarization Toggle
+                Toggle(isOn: $enableDiarization) {
+                    HStack {
+                        Image(systemName: "person.2.fill")
+                        Text("Speaker Diarization")
+                    }
+                }
+                .toggleStyle(.switch)
+                .help("Identify separate speakers (SPEAKER_01/SPEAKER_02)")
+                
                 // Transcribe Button
                 Button(action: {
                     Task {
@@ -270,7 +281,13 @@ struct MeetingTranscriptionView: View {
                 // Action buttons
                 HStack(spacing: 8) {
                     Button(action: {
-                        self.copyToClipboard(result.text)
+                        // Copy with speaker labels if available
+                        if let segments = result.speakerSegments, !segments.isEmpty {
+                            let textWithSpeakers = segments.map { "\($0.speaker): \($0.text)" }.joined(separator: "\n")
+                            self.copyToClipboard(textWithSpeakers)
+                        } else {
+                            self.copyToClipboard(result.text)
+                        }
                     }) {
                         Image(systemName: "doc.on.doc")
                     }
@@ -290,11 +307,33 @@ struct MeetingTranscriptionView: View {
 
             // Transcription text
             ScrollView {
-                Text(result.text)
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
+                Group {
+                    if let segments = result.speakerSegments, !segments.isEmpty {
+                        // Show with speaker labels
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(segments) { segment in
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text(segment.speaker)
+                                        .font(.headline)
+                                        .foregroundColor(segment.speaker == "SPEAKER_01" ? .blue : .orange)
+                                        .frame(width: 90, alignment: .leading)
+                                    
+                                    Text(segment.text)
+                                        .font(.body)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                    } else {
+                        // Show plain text
+                        Text(result.text)
+                            .font(.body)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                    }
+                }
             }
             .frame(maxHeight: 300)
             .background(
@@ -424,7 +463,7 @@ struct MeetingTranscriptionView: View {
         guard let fileURL = selectedFileURL else { return }
 
         do {
-            _ = try await self.transcriptionService.transcribeFile(fileURL)
+            _ = try await self.transcriptionService.transcribeFile(fileURL, enableDiarization: enableDiarization)
         } catch {
             DebugLogger.shared.error("Transcription error: \(error)", source: "MeetingTranscriptionView")
         }

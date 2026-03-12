@@ -251,6 +251,9 @@ final class ASRService: ObservableObject {
         case .qwen3Asr:
             // Qwen support removed; route legacy requests to Parakeet v3.
             return FluidAudioProvider(modelOverride: .parakeetTDT, configureWordBoosting: false)
+        case .gigaamV3Ctc, .gigaamV3Rnnt, .gigaamV2Ctc, .gigaamV2Rnnt:
+            // GigaAM Russian ASR models
+            return GigaAMProvider(modelOverride: model)
         default:
             // Whisper models - create provider with specific model override
             let provider = WhisperProvider(modelOverride: model)

@@ -1,6 +1,6 @@
 # FluidVoice
 
-[![Supported Models](https://img.shields.io/badge/Models-Parakeet%20v3%20%26%20v2%20%7C%20Apple%20Speech%20%7C%20Whisper-blue)](https://github.com/altic-dev/Fluid-oss)
+[![Supported Models](https://img.shields.io/badge/Models-Parakeet%20v3%20%26%20v2%20%7C%20GigaAM%20%7C%20Apple%20Speech%20%7C%20Whisper-blue)](https://github.com/altic-dev/Fluid-oss)
 
 Fully open source voice-to-text dictation app for macOS with AI enhancement.
 
@@ -49,13 +49,15 @@ https://github.com/user-attachments/assets/c57ef6d5-f0a1-4a3f-a121-637533442c24
 
 ## Features
 - **Live Preview Mode**: Real-time transcription preview in overlay
-- **Multiple Speech Models**: Parakeet TDT v3 & v2, Apple Speech, and Whisper
+- **Multiple Speech Models**: Parakeet TDT v3 & v2, GigaAM, Apple Speech, and Whisper
 - **Real-time transcription** with extremely low latency
 - **AI enhancement** with OpenAI, Groq, and custom providers
 - **Global hotkey** for instant voice capture
 - **Smart typing** directly into any app
 - **Menu bar integration** for quick access
 - **Auto-updates** with seamless restart
+- **Audio File Transcription**: Transcribe audio/video files with optional speaker diarization
+- **Speaker Diarization**: Identify two speakers (SPEAKER_01/SPEAKER_02) in recordings
 
 ## Supported Models
 
@@ -71,6 +73,22 @@ Uses the native macOS Speech Recognition engine and Speech Analyzer API (macOS 2
 
 ### Whisper
 Universal support (runs on Intel & Apple Silicon). Supports 99 languages.
+
+### GigaAM v3 (Russian)
+State-of-the-art Russian speech recognition by Sber. Outperforms Whisper-large-v3 by ~30% on Russian audio. Uses CTC or RNNT decoders. Requires Apple Silicon (M1+).
+
+**Requirements:**
+```bash
+pip install gigaam torch transformers torchaudio
+```
+
+### Speaker Diarization
+For audio file transcription, enable speaker diarization to identify two speakers. Uses Silero VAD + ECAPA-TDNN embeddings + Mean Shift clustering.
+
+**Requirements:**
+```bash
+pip install silero-vad speechbrain ecapa-tdnn sklearn numpy torch torchaudio
+```
 
 ## Quick Start
 
