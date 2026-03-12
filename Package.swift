@@ -15,7 +15,7 @@ let package = Package(
         .package(url: "https://github.com/MrKai77/DynamicNotchKit", from: "1.0.0"),
         .package(url: "https://github.com/exPHAT/SwiftWhisper.git", branch: "master"),
         .package(url: "https://github.com/PostHog/posthog-ios.git", from: "3.0.0"),
-        .package(url: "https://github.com/ejbills/mediaremote-adapter", from: "1.0.0"),
+        .package(url: "https://github.com/ungive/mediaremote-adapter", branch: "master"),
     ],
     targets: [
         .executableTarget(
@@ -27,7 +27,7 @@ let package = Package(
                 "DynamicNotchKit",
                 "SwiftWhisper",
                 .product(name: "PostHog", package: "posthog-ios"),
-                "MediaRemoteAdapter",
+                .product(name: "MediaRemote", package: "mediaremote-adapter"),
             ]
         ),
     ]

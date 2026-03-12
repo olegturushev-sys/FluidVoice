@@ -1,6 +1,6 @@
 import Foundation
 #if arch(arm64)
-import MediaRemoteAdapter
+import MediaRemote
 #endif
 
 /// Service that wraps MediaRemoteAdapter's MediaController to provide
