@@ -8,6 +8,7 @@ import SwiftUI
 import FluidAudio
 #endif
 
+// swiftlint:disable type_body_length
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
     static let transcriptionPreviewCharLimitRange: ClosedRange<Int> = 50...800
@@ -2665,3 +2666,4 @@ extension SettingsStore {
         return newModel
     }
 }
+// swiftlint:enable type_body_length
