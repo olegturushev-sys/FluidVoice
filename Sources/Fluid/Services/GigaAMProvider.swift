@@ -14,10 +14,10 @@ final class GigaAMProvider: TranscriptionProvider {
 
     init(modelOverride: SettingsStore.SpeechModel? = nil) {
         self.modelOverride = modelOverride
-        
+
         let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
             .appendingPathComponent("GigaAMModels")
-        
+
         if let cacheDir = cacheDir {
             self.modelCacheDirectory = cacheDir
         } else {
@@ -242,7 +242,7 @@ final class GigaAMProvider: TranscriptionProvider {
             from transformers import AutoModel, AutoProcessor
 
             audio_path = sys.argv[1] if len(sys.argv) > 1 else None
-            
+
             if not audio_path or not os.path.exists(audio_path):
                 print("Error: Audio file not found", file=sys.stderr)
                 sys.exit(1)
@@ -252,7 +252,7 @@ final class GigaAMProvider: TranscriptionProvider {
                 revision="\(modelType)",
                 trust_remote_code=True
             )
-            
+
             processor = AutoProcessor.from_pretrained(
                 "\(modelId)",
                 revision="\(modelType)",
@@ -270,8 +270,8 @@ final class GigaAMProvider: TranscriptionProvider {
                 waveform = waveform.mean(dim=0, keepdim=True)
 
             input_features = processor(
-                waveform.squeeze().numpy(), 
-                sampling_rate=16000, 
+                waveform.squeeze().numpy(),
+                sampling_rate=16000,
                 return_tensors="pt"
             ).input_features
 

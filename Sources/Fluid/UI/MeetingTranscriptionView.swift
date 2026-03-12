@@ -147,7 +147,7 @@ struct MeetingTranscriptionView: View {
                 }
                 .toggleStyle(.switch)
                 .help("Identify separate speakers (SPEAKER_01/SPEAKER_02)")
-                
+
                 // Transcribe Button
                 Button(action: {
                     Task {
@@ -317,7 +317,7 @@ struct MeetingTranscriptionView: View {
                                         .font(.headline)
                                         .foregroundColor(segment.speaker == "SPEAKER_01" ? .blue : .orange)
                                         .frame(width: 90, alignment: .leading)
-                                    
+
                                     Text(segment.text)
                                         .font(.body)
                                 }

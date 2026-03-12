@@ -1,8 +1,8 @@
 import AVFoundation
 import Combine
 import CoreMedia
-import Foundation
 import FluidVoice
+import Foundation
 
 /// Segment with speaker identification
 struct SpeakerSegment: Identifiable, Sendable, Codable {
@@ -26,7 +26,7 @@ struct TranscriptionResult: Identifiable, Sendable, Codable {
     let processingTime: TimeInterval
     let fileName: String
     let timestamp: Date = .init()
-    var speakerSegments: [SpeakerSegment]?
+    var speakerSegments: [SpeakerSegment] = []
 
     enum CodingKeys: String, CodingKey {
         case text, confidence, duration, processingTime, fileName, timestamp, speakerSegments
@@ -45,7 +45,7 @@ final class MeetingTranscriptionService: ObservableObject {
 
     // Share the ASR service instance to avoid loading models twice
     private let asrService: ASRService
-    
+
     // Speaker diarization service
     private let speakerDiarizationService = SpeakerDiarizationService()
 
@@ -253,19 +253,19 @@ final class MeetingTranscriptionService: ObservableObject {
             let avgConfidence = chunkCount > 0 ? totalConfidence / Float(chunkCount) : 0
 
             let transcriptionResult = (text: finalText, confidence: avgConfidence)
-            
+
             // Speaker diarization
-            var speakerSegments: [SpeakerSegment]? = nil
+            var speakerSegments: [SpeakerSegment] = []
             if useDiarization {
                 self.currentStatus = "Performing speaker diarization..."
                 self.progress = 0.92
-                
+
                 do {
                     speakerSegments = try await self.speakerDiarizationService.diarize(
                         audioURL: fileURL,
                         transcription: finalText
                     )
-                    
+
                     // Map text to speaker segments based on timestamps
                     if let segments = speakerSegments, !segments.isEmpty {
                         speakerSegments = self.mapTextToSpeakerSegments(
@@ -473,9 +473,9 @@ final class MeetingTranscriptionService: ObservableObject {
         let frameLength = Int(outputBuffer.frameLength)
         return Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
     }
-    
+
     // MARK: - Speaker Diarization Helpers
-    
+
     /// Map full transcription text to speaker segments based on timing
     private func mapTextToSpeakerSegments(
         segments: [SpeakerSegment],
@@ -483,40 +483,40 @@ final class MeetingTranscriptionService: ObservableObject {
         duration: TimeInterval
     ) -> [SpeakerSegment] {
         guard !segments.isEmpty else { return [] }
-        
+
         // Simple approach: distribute text across segments proportionally
         let words = fullText.split(separator: " ").map(String.init)
         let totalWords = words.count
-        
+
         guard totalWords > 0, duration > 0 else {
             return segments.map { SpeakerSegment(speaker: $0.speaker, text: fullText, startTime: $0.startTime, endTime: $0.endTime) }
         }
-        
+
         var result: [SpeakerSegment] = []
         var currentWordIndex = 0
-        
+
         for segment in segments {
             let segmentDuration = segment.endTime - segment.startTime
             let segmentRatio = segmentDuration / duration
             let segmentWordCount = max(1, Int(Double(totalWords) * segmentRatio))
-            
+
             let endWordIndex = min(currentWordIndex + segmentWordCount, totalWords)
-            
+
             if currentWordIndex < totalWords {
                 let segmentWords = Array(words[currentWordIndex..<endWordIndex])
                 let segmentText = segmentWords.joined(separator: " ")
-                
+
                 result.append(SpeakerSegment(
                     speaker: segment.speaker,
                     text: segmentText,
                     startTime: segment.startTime,
                     endTime: segment.endTime
                 ))
-                
+
                 currentWordIndex = endWordIndex
             }
         }
-        
+
         return result
     }
 }

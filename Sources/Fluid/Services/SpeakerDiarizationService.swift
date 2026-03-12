@@ -166,7 +166,10 @@ final class SpeakerDiarizationService {
             if speakerTexts[segment.speaker] == nil {
                 speakerTexts[segment.speaker] = ""
             }
-            speakerTexts[segment.speaker]! += segment.text + " "
+            if var text = speakerTexts[segment.speaker] {
+                text += segment.text + " "
+                speakerTexts[segment.speaker] = text
+            }
         }
 
         guard speakerTexts.count == 2 else {
