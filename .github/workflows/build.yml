@@ -26,6 +26,9 @@ jobs:
     - name: Install xcpretty
       run: sudo gem install xcpretty
 
+    - name: Install create-dmg
+      run: brew install create-dmg
+
     - name: Cache Whisper models
       uses: actions/cache@v4
       with:
@@ -70,3 +73,38 @@ jobs:
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
           | xcpretty
+
+    - name: Create DMG
+      run: |
+        # Build the archive first
+        xcodebuild archive \
+          -project Fluid.xcodeproj \
+          -scheme Fluid \
+          -configuration Release \
+          -destination 'platform=macOS,arch=arm64' \
+          -archivePath FluidVoice \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+        
+        # Create DMG using the create-dmg tool
+        mkdir -p output
+        create-dmg \
+          --volname "FluidVoice" \
+          --volicon "Sources/Fluid/Assets.xcassets/AppIcon.appiconset/AppIcon.icns" \
+          --window-pos 200 120 \
+          --window-size 600 400 \
+          --icon-size 100 \
+          --icon "FluidVoice.app" 150 \
+          --app-drop-link 450 150 \
+          "output/FluidVoice.dmg" \
+          "FluidVoice.xcarchive/Products/Applications/FluidVoice.app" || \
+        # Fallback: simple DMG if create-dmg fails
+        hdiutil create -volname FluidVoice -srcfolder "FluidVoice.xcarchive/Products/Applications/FluidVoice.app" -ov -format UDZO "output/FluidVoice.dmg"
+
+    - name: Upload DMG Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: FluidVoice-DMG
+        path: output/FluidVoice.dmg
+        retention-days: 30
