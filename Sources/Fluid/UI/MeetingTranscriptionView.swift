@@ -282,8 +282,8 @@ struct MeetingTranscriptionView: View {
                 HStack(spacing: 8) {
                     Button(action: {
                         // Copy with speaker labels if available
-                        if let segments = result.speakerSegments, !segments.isEmpty {
-                            let textWithSpeakers = segments.map { "\($0.speaker): \($0.text)" }.joined(separator: "\n")
+                        if !result.speakerSegments.isEmpty {
+                            let textWithSpeakers = result.speakerSegments.map { "\($0.speaker): \($0.text)" }.joined(separator: "\n")
                             self.copyToClipboard(textWithSpeakers)
                         } else {
                             self.copyToClipboard(result.text)
@@ -308,10 +308,10 @@ struct MeetingTranscriptionView: View {
             // Transcription text
             ScrollView {
                 Group {
-                    if let segments = result.speakerSegments, !segments.isEmpty {
+                    if !result.speakerSegments.isEmpty {
                         // Show with speaker labels
                         VStack(alignment: .leading, spacing: 12) {
-                            ForEach(segments) { segment in
+                            ForEach(result.speakerSegments) { segment in
                                 HStack(alignment: .top, spacing: 8) {
                                     Text(segment.speaker)
                                         .font(.headline)
