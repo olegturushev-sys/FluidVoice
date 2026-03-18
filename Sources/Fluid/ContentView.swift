@@ -508,7 +508,7 @@ struct ContentView: View {
         .onChange(of: self.selectedProviderID) { _, newValue in
             SettingsStore.shared.selectedProviderID = newValue
         }
-        .onChange(of: self.isCommandModeShortcutEnabled) { newValue in
+        .onChange(of: self.isCommandModeShortcutEnabled) { _, newValue in
             SettingsStore.shared.commandModeShortcutEnabled = newValue
             self.hotkeyManager?.updateCommandModeShortcutEnabled(newValue)
 
@@ -524,7 +524,7 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: self.isRewriteModeShortcutEnabled) { newValue in
+        .onChange(of: self.isRewriteModeShortcutEnabled) { _, newValue in
             SettingsStore.shared.rewriteModeShortcutEnabled = newValue
             self.hotkeyManager?.updateRewriteModeShortcutEnabled(newValue)
 
